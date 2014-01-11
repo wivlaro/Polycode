@@ -23,6 +23,7 @@ THE SOFTWARE.
 #include "PolyMesh.h"
 #include "PolyLogger.h"
 #include "OSBasics.h"
+#include "PolyMatrix4.h"
 
 using std::min;
 using std::max;
@@ -326,8 +327,10 @@ Vertex *Mesh::addVertex(Number x, Number y, Number z) {
     return vertex;
 }
 
-void Mesh::addVertex(Vertex *vertex) {
+unsigned int Mesh::addVertex(Vertex *vertex) {
+	unsigned int index = vertices.size();
     vertices.push_back(vertex);
+	return index;
 }
 
 Vertex *Mesh::addVertex(Number x, Number y, Number z, Number u, Number v) {
@@ -509,6 +512,27 @@ Vector3 Mesh::calculateBBox() {
     
     return retVec*2;
 }
+
+void Mesh::calculateFullBBox(Vector3* min, Vector3* max, Matrix4* transform) {
+	Vector3 v;
+	for(int i=0; i < vertices.size(); i++) {
+		v = *vertices[i];
+		if (transform) {
+			v = (*transform) * v;
+		}
+		if (i) {
+			if (v.x < min->x) min->x = v.x; else if (v.x > max->x) max->x = v.x;
+			if (v.y < min->y) min->y = v.y; else if (v.y > max->y) max->y = v.y;
+			if (v.z < min->z) min->z = v.z; else if (v.z > max->z) max->z = v.z;
+		}
+		else {
+			//First pass, just directly set min/max
+			*min = v;
+			*max = v;
+		}
+	}
+}
+
 
 void Mesh::createSphere(Number radius, int segmentsH, int segmentsW) {
 
@@ -776,6 +800,73 @@ void Mesh::addIndexedFace(unsigned int i1, unsigned int i2, unsigned int i3, uns
     indices.push_back(i2 % vertices.size());
     indices.push_back(i3 % vertices.size());
     indices.push_back(i4 % vertices.size());
+}
+
+void Mesh::removeFace(unsigned int faceIndex) {
+	unsigned int groupSize = getIndexGroupSize();
+	unsigned int startOffset = faceIndex * groupSize;
+	if (indexedMesh) {
+		std::vector<unsigned int>::iterator start = indices.begin() + startOffset;
+		indices.erase(start, start+groupSize);
+	}
+	else {
+		removeVertexRange(startOffset, startOffset + groupSize);
+	}
+}
+
+void Mesh::removeVertexRange(unsigned int beginRemoveVertex, int vertexRemovalCount) {
+	if (!vertices.size()) return;
+	unsigned int endRemoveVertex = beginRemoveVertex + vertexRemovalCount;
+	vertices.erase(vertices.begin() + beginRemoveVertex, vertices.begin() + endRemoveVertex);
+	if (indexedMesh) {
+		unsigned int groupSize = getIndexGroupSize();
+		for (unsigned int i = 0; i < indices.size(); ) {
+			unsigned int faceVertexIndex = indices[i];
+			//Encountered a face that references an index being removed
+			if (faceVertexIndex >= beginRemoveVertex && faceVertexIndex < endRemoveVertex) {
+				//Rewind to beginning of group, going to remove entire face
+				unsigned int faceIndex = i/groupSize;
+				i = faceIndex * groupSize;
+				indices.erase(indices.begin() + i, indices.begin() + i + groupSize);
+				if (useFaceNormals) {
+					faceNormals.erase(faceNormals.begin() + i);
+				}
+			}
+			else {
+				if (faceVertexIndex > beginRemoveVertex) {
+					indices[i] = faceVertexIndex - vertexRemovalCount;
+				}
+				i++;
+			}
+		}
+	}
+}
+
+int Mesh::removeUnusedVertices() {
+	int removals = 0;
+	if (indexedMesh) {
+		std::vector<unsigned int> vertexMap(vertices.size());
+		//Mark all used vertices first
+		for (unsigned int i = 0; i < indices.size(); i++) {
+			vertexMap[indices[i]] = 1;
+		}
+		//Create relocation map, move vertices
+		unsigned int dst = 0;
+		for (unsigned int src = 0; src < vertexMap.size(); src++) {
+			if (vertexMap[src]) {
+				vertices[dst] = vertices[src];
+				vertexMap[src] = dst;
+				dst++;
+			}
+		}
+		removals = dst - vertices.size();
+		vertices.resize(dst);
+		//Apply map to indices
+		for (unsigned int i = 0; i < indices.size(); i++) {
+			indices[i] = vertexMap[indices[i]];
+		}
+	}
+	return removals;
 }
 
 void Mesh::createBox(Number w, Number d, Number h) {

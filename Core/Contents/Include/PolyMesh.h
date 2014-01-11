@@ -29,6 +29,7 @@ class OSFILE;
 namespace Polycode {
 	
 	class String;
+	class Matrix4;
 
 	class _PolyExport VertexSorter : public PolyBase {
 		public:
@@ -135,7 +136,7 @@ namespace Polycode {
 			static Mesh *MeshFromFileName(String& fileName);
 
 			virtual ~Mesh();
-			
+
 			/**
 			* Loads a mesh from a file.
 			* @param fileName Path to mesh file.
@@ -247,7 +248,7 @@ namespace Polycode {
         
             Vertex *addVertex(Number x, Number y, Number z);
 			
-            void addVertex(Vertex *vertex);
+			unsigned int addVertex(Vertex *vertex);
         
             Vertex *getVertex(unsigned int index) const;
 
@@ -302,11 +303,28 @@ namespace Polycode {
 
             void setUseFaceNormals(bool val);
             bool getUseFaceNormals();
+
+			inline unsigned int getIndexGroupSize() {
+				switch (meshType) {
+				case QUAD_MESH: return 4;
+				case TRI_MESH: return 3;
+				case LINE_MESH: return 2;
+				default: return 1;
+				}
+
+			}
         
 			/**
 			* Calculates the mesh bounding box.
 			*/
 			Vector3 calculateBBox();
+
+			/** Calculates the full bounding box from minimum to maximum corners.
+			* @param min Points to a vector in which we place the minimum corner coordinates.
+			* @param max Points to a vector in which we place the maximum corner coordinates.
+			* @param transform An optional matrix transformation to apply before computing coordinates.
+			*/
+			void calculateFullBBox(Vector3* min, Vector3* max, Matrix4* transform = NULL);
 
 			/**
 			* Checks if the mesh has a vertex buffer.
@@ -368,11 +386,25 @@ namespace Polycode {
 			bool useVertexColors;
             bool indexedMesh;
 
-            void addIndexedFace(unsigned int i1, unsigned int i2);
-            void addIndexedFace(unsigned int i1, unsigned int i2, unsigned int i3);
-            void addIndexedFace(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4);
-            void addIndex(unsigned int index);
-        
+			void addIndexedFace(unsigned int i1, unsigned int i2);
+			void addIndexedFace(unsigned int i1, unsigned int i2, unsigned int i3);
+			void addIndexedFace(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4);
+			void addIndex(unsigned int index);
+
+			/** Removes a range of vertices starting at beginRemoveVertex. vertexRemovalCount should be a multiple of the number of faces of your polygons
+			 * if you want to keep your mesh data clean. If this is an indexedMesh, will also remove any faces that reference vertices in the range.
+			 * @param beginRemoveVertex First element of the vertex array to remove
+			 * @param vertexRemovalCount Number of elements to remove from the vertex array */
+			void removeVertexRange(unsigned int beginRemoveVertex, int vertexRemovalCount = 3);
+
+			/** Removes a face from the mesh. Face is defined as a quad for QUAD_MESH, a triangle for TRI_MESH, a line for LINE_MESH, or point for anything else.
+			 *  In indexedMesh mode this may result in orphaned vertices.
+			 * @param faceIndex The 0-indexed face of the mesh (and NOT the index into the indices array!) */
+			void removeFace(unsigned int faceIndex);
+
+			/** For indexedMesh only, removes any unused vertices from the mesh. */
+			int removeUnusedVertices();
+
             Vector3 getFaceNormalForVertex(unsigned int index);
         
 		protected:
@@ -387,6 +419,6 @@ namespace Polycode {
         
             std::vector<Vector3> faceNormals;
             std::vector<unsigned int> indices;
-            std::vector <Vertex*> vertices;
+			std::vector <Vertex*> vertices;
 	};
 }

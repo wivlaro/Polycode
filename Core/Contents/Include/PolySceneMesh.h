@@ -150,6 +150,8 @@ namespace Polycode {
 			* If this is set to true, the mesh will be cached to a hardware vertex buffer if those are available. This can dramatically speed up rendering.
 			*/
 			void cacheToVertexBuffer(bool cache);
+
+			virtual void recalculateBBox();
 	
 			unsigned int lightmapIndex;
 			

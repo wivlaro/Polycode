@@ -522,7 +522,10 @@ namespace Polycode {
 			/**
 			* Recalculates the bounding box of the entity based on its size.
 			*/
-			void recalculateBBox();
+			virtual void recalculateBBox();
+
+			/** Moves this object to the centre of the bounding box, keeping all children in place. */
+			void recenterOriginUsingBoundingBox();
 			
 			/**
 			* Returns the bounding box radius.
@@ -552,6 +555,7 @@ namespace Polycode {
 			virtual MouseEventResult onMouseMove(const Ray &ray, int timestamp);
 			virtual MouseEventResult onMouseWheelUp(const Ray &ray, int timestamp);
 			virtual MouseEventResult onMouseWheelDown(const Ray &ray, int timestamp);
+
 
 			//@}			
 			// ----------------------------------------------------------------------------------------------------------------
@@ -681,8 +685,17 @@ namespace Polycode {
 			void setRenderer(Renderer *renderer);
 			
 			virtual bool customHitDetection(const Ray &ray) { return true; }			
-			
-			Vector3 bBox;			
+
+			void applyChildBBoxes();
+			void setBBoxRadiusFromBBox();
+			void updateBoundingBoxWithPoint(const Vector3& point) {
+				if (point.x < boundingBoxMin.x) boundingBoxMin.x = point.x; else if (point.x > boundingBoxMax.x) boundingBoxMax.x = point.x;
+				if (point.y < boundingBoxMin.y) boundingBoxMin.y = point.y; else if (point.y > boundingBoxMax.y) boundingBoxMax.y = point.y;
+				if (point.z < boundingBoxMin.z) boundingBoxMin.z = point.z; else if (point.z > boundingBoxMax.z) boundingBoxMax.z = point.z;
+			}
+
+			Vector3 bBox;
+			Vector3 boundingBoxMax, boundingBoxMin;
 			bool ignoreParentMatrix;
 						
 			bool enableScissor;	
@@ -727,7 +740,7 @@ namespace Polycode {
             static int defaultBlendingMode;
 			
 			//@}		
-		protected:
+	protected:
 		
 			int lastClickTicks;
 			Number yAdjust;

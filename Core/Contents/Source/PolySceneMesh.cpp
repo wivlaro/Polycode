@@ -101,6 +101,12 @@ void SceneMesh::setMesh(Mesh *mesh) {
 	useVertexBuffer = false;	
 }
 
+void SceneMesh::recalculateBBox() {
+	Matrix4 matrix = getConcatenatedMatrix();
+	mesh->calculateFullBBox(&boundingBoxMin, &boundingBoxMax, &matrix);
+	applyChildBBoxes();
+	setBBoxRadiusFromBBox();
+}
 
 SceneMesh::~SceneMesh() {
 	if(ownsSkeleton)

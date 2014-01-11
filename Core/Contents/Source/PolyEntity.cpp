@@ -315,9 +315,41 @@ void Entity::setColor(Number r, Number g, Number b, Number a) {
 	color.setColor(r,g,b,a);
 }
 
-void Entity::recalculateBBox() {
-	
+void Entity::applyChildBBoxes() {
+	for(int i=0;i<children.size();i++) {
+		Entity* child = children[i];
+		child->recalculateBBox();
+		updateBoundingBoxWithPoint(child->boundingBoxMin);
+		updateBoundingBoxWithPoint(child->boundingBoxMax);
+	}
 }
+
+void Entity::setBBoxRadiusFromBBox() {
+	bBoxRadius = sqrtf(MAX((boundingBoxMin - position).lengthSquared(), (boundingBoxMax - position).lengthSquared()));
+}
+
+void Entity::recalculateBBox() {
+	boundingBoxMin = position;
+	boundingBoxMax = position;
+	applyChildBBoxes();
+	setBBoxRadiusFromBBox();
+}
+
+void Entity::recenterOriginUsingBoundingBox() {
+	Vector3 center = (boundingBoxMin + boundingBoxMax) * 0.5f;
+	Vector3 offset = center - position;
+	position += offset;
+	for(int i=0;i<children.size();i++) {
+		Entity* child = children[i];
+		child->position -= offset;
+//		child->boundingBoxMin -= offset;
+//		child->boundingBoxMax -= offset;
+	}
+//	boundingBoxMin += offset;
+//	boundingBoxMax += offset;
+	bBoxRadius = MAX((boundingBoxMin - position).length(), (boundingBoxMax - position).length());
+}
+
 
 void Entity::setBlendingMode(int newBlendingMode) {
 	blendingMode = newBlendingMode;
