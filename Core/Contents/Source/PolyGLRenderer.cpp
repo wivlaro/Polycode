@@ -93,15 +93,8 @@ inline void polycodeGLGetNumberv( GLenum pname, GLfloat *params ) {
 
 OpenGLRenderer::OpenGLRenderer() : Renderer() {
 
-	nearPlane = 0.1f;
-	farPlane = 100.0f;
 	verticesToDraw = 0;
 
-}
-
-void OpenGLRenderer::setClippingPlanes(Number nearPlane_, Number farPlane_) {
-	nearPlane = nearPlane_;
-	farPlane = farPlane_;
 }
 
 bool OpenGLRenderer::Init() {
@@ -170,7 +163,6 @@ void OpenGLRenderer::Resize(int xRes, int yRes) {
 	glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
 	glClearDepth(1.0f);
 
-	glMatrixMode(GL_MODELVIEW);
 	glLineWidth(1);
 	glDepthFunc( GL_LEQUAL );
 	
@@ -218,19 +210,29 @@ void OpenGLRenderer::setLineSmooth(bool val) {
 		glDisable(GL_LINE_SMOOTH);
 }
 
-void OpenGLRenderer::resetViewport() {
+void OpenGLRenderer::setProjectionFromFrustum(Number left, Number right, Number bottom, Number top, Number front, Number back) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	//gluPerspective(fov,(GLfloat)viewportWidth/(GLfloat)viewportHeight,nearPlane,farPlane);		
-    Number fW, fH;
-    fH = tan( fov / 360.0 * PI ) * nearPlane;
-    fW = fH * ((GLfloat)viewportWidth/(GLfloat)viewportHeight);
-	glFrustum(-fW + (viewportShift.x*fW*2.0), fW + (viewportShift.x*fW*2.0), -fH + (viewportShift.y*fH*2.0), fH + (viewportShift.y*fH*2.0), nearPlane, farPlane);
-	
+	glFrustum(left, right, bottom, top, front, back);
+	glMatrixMode(GL_MODELVIEW);
+	polycodeGLGetNumberv(GL_PROJECTION_MATRIX, sceneProjectionMatrix);
+
+}
+
+void OpenGLRenderer::setProjectionFromFoV(Number fov, Number near, Number far) {
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	Number fW, fH;
+	fH = tan( fov / 360.0 * PI ) * near;
+	fW = fH * ((GLfloat)viewportWidth/(GLfloat)viewportHeight);
+	glFrustum(-fW + (viewportShift.x*fW*2.0), fW + (viewportShift.x*fW*2.0), -fH + (viewportShift.y*fH*2.0), fH + (viewportShift.y*fH*2.0), near, far);
+	glMatrixMode(GL_MODELVIEW);
+	polycodeGLGetNumberv(GL_PROJECTION_MATRIX, sceneProjectionMatrix);
+}
+
+void OpenGLRenderer::resetViewport() {
 	glViewport(0, 0, viewportWidth*backingResolutionScaleX, viewportHeight*backingResolutionScaleY);
 	glScissor(0, 0,  viewportWidth*backingResolutionScaleX, viewportHeight*backingResolutionScaleY);
-	glMatrixMode(GL_MODELVIEW);	
-	polycodeGLGetNumberv(GL_PROJECTION_MATRIX, sceneProjectionMatrix);
 }
 
 Vector3 OpenGLRenderer::Unproject(Number x, Number y, const Matrix4 &cameraMatrix, const Matrix4 &projectionMatrix, const Polycode::Rectangle &viewport) {
@@ -565,21 +567,17 @@ void OpenGLRenderer::setFogProperties(int fogMode, Color color, Number density, 
 	glFogf(GL_FOG_END, endDepth);
 }
 
-void OpenGLRenderer::setOrthoMode(Number xSize, Number ySize, bool centered) {
-	this->orthoSizeX = xSize;
-	this->orthoSizeY = ySize;
-
+void OpenGLRenderer::setProjectionOrtho(Number xSize, Number ySize, Number near, Number far, bool centered) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 		
 	if(centered) {
-		glOrtho(-xSize*0.5,xSize*0.5,-ySize*0.5,ySize*0.5,nearPlane,farPlane);		
+		glOrtho(-xSize*0.5,xSize*0.5,-ySize*0.5,ySize*0.5,near,far);
 	} else {
-		glOrtho(0.0f,xSize,0,ySize,nearPlane,farPlane);
+		glOrtho(0.0f,xSize,0,ySize,near,far);
 	}
 	polycodeGLGetNumberv( GL_PROJECTION_MATRIX, sceneProjectionMatrixOrtho);
-		
-	orthoMode = true;
+
 	glMatrixMode(GL_MODELVIEW);	
 	glLoadIdentity();
 }
@@ -591,16 +589,10 @@ void OpenGLRenderer::enableBackfaceCulling(bool val) {
 		glDisable(GL_CULL_FACE);
 }
 
-void OpenGLRenderer::setPerspectiveMode() {
-	if(orthoMode) {
-		if(lightingEnabled) {
-		}
-		glEnable (GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-		glMatrixMode( GL_PROJECTION );
-		glMatrixMode( GL_MODELVIEW );
-		orthoMode = false;
-	}
+void OpenGLRenderer::setPerspectiveDefaults() {
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	
 	polycodeGLGetNumberv( GL_PROJECTION_MATRIX, sceneProjectionMatrix);
@@ -1072,7 +1064,11 @@ void OpenGLRenderer::drawArrays(int drawType) {
 }
 
 void OpenGLRenderer::drawScreenQuad(Number qx, Number qy) {
-	setOrthoMode();
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	setProjectionOrtho();
 	
 	Number xscale = qx/((Number)viewportWidth) * 2.0f;
 	Number yscale = qy/((Number)viewportHeight) * 2.0f;	
@@ -1092,7 +1088,12 @@ void OpenGLRenderer::drawScreenQuad(Number qx, Number qy) {
 		glTexCoord2f(1.0f, 1.0f);
 		glVertex2f(-1+(1.0f*xscale), -1+(1.0f*yscale));
 	glEnd();
-	setPerspectiveMode();
+
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+	setPerspectiveDefaults();
 }
 
 
