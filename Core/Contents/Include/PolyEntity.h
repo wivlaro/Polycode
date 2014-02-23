@@ -35,6 +35,7 @@
 namespace Polycode {
 
 	class Renderer;
+	class Mesh;
 
 	class _PolyExport MouseEventResult {
 		public:
@@ -839,7 +840,9 @@ namespace Polycode {
 			bool snapToPixels;
         
 			bool mouseOver;
-        
+
+			Mesh* bakeChildMeshes(Mesh* destinationMesh = NULL, Matrix4* transform = NULL);
+
             /**
              * Sets the default blending mode for all created entities.
              */
@@ -892,6 +895,8 @@ namespace Polycode {
 
             std::vector <EntityProp> entityProps;
         
+			virtual void bakeIntoMesh(Mesh* destinationMesh, const Matrix4* parentTransform) {}
+
 		protected:
         
 		
@@ -904,7 +909,8 @@ namespace Polycode {
 		
 			void *userData;
 		
-			std::vector<Entity*> children;
+			typedef std::vector<Entity*> children_t;
+			children_t children;
 
 			Vector3 anchorPoint;
 		
