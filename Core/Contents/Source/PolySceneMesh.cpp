@@ -385,3 +385,14 @@ void SceneMesh::Render() {
 	}	
     renderer->setWireframePolygonMode(false);    
 }
+
+void SceneMesh::bakeIntoMesh(Mesh* destinationMesh, const Matrix4* parentTransform) {
+	updateEntityMatrix();
+	if (parentTransform != NULL) {
+		Matrix4 tempMatrix = transformMatrix * (*parentTransform);
+		destinationMesh->addMesh(mesh, &tempMatrix);
+	}
+	else {
+		destinationMesh->addMesh(mesh, &transformMatrix);
+	}
+}

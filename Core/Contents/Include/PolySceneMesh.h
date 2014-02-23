@@ -186,6 +186,8 @@ namespace Polycode {
             virtual Entity *Clone(bool deepClone, bool ignoreEditorOnly) const;
             virtual void applyClone(Entity *clone, bool deepClone, bool ignoreEditorOnly) const;
         
+			virtual void bakeIntoMesh(Mesh* destinationMesh, const Matrix4* parentTransform);
+
             
             /**
              * Normally, translucent textures do not affect the depth buffer, but if this flag is set to true, this entity's alpha channel is written to the depth buffer at a preset threshold. This flag is set to false by default.
