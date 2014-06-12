@@ -833,6 +833,10 @@ namespace Polycode {
              */
 			Vector2 getScreenPositionForMainCamera();
 
+			void insertionSortChildren(const Vector3& sortVector);
+
+			bool hitTest(Number x, Number y) const { return false; }
+			bool hitTest(Vector2 v) const { return false; }
 
             /**
              * If set to true, will round the position of this entity to integral values. Use this if you need pixel-perfect positioning in 2D.
@@ -927,6 +931,8 @@ namespace Polycode {
 			Entity *parentEntity;
 		
 			Renderer *renderer;
+
+			Number sortTemp;
 	};
 	
 	typedef Entity SceneEntity;

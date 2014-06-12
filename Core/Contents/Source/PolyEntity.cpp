@@ -1194,6 +1194,21 @@ MouseEventResult Entity::onMouseWheelUp(const Ray &ray, int timestamp) {
 	return ret;
 }
 
+void Entity::insertionSortChildren(const Vector3& sortVector) {
+	if (!children.empty()) {
+		children[0]->sortTemp = sortVector.dot(children[0]->getPosition());
+		for (int i = 1; i < children.size(); i++) {
+			Entity* child_i = children[i];
+			child_i->sortTemp = sortVector.dot(child_i->getPosition());
+			for (int k = i; k > 1 && children[k]->sortTemp < children[k-1]->sortTemp; k--) {
+				Entity* tempChild = children[k];
+				children[k] = children[k-1];
+				children[k-1] = tempChild;
+			}
+		}
+	}
+}
+
 MouseEventResult Entity::onMouseWheelDown(const Ray &ray, int timestamp) {
 	MouseEventResult ret;
 	ret.hit = false;
