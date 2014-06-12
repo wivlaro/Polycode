@@ -696,6 +696,8 @@ namespace Polycode {
             Vector2 getScreenPosition(const Matrix4 &projectionMatrix, const Matrix4 &cameraMatrix, const Polycode::Rectangle &viewport);
 			Vector2 getScreenPositionForMainCamera();
 
+			void insertionSortChildren(const Vector3& sortVector);
+
 			bool hitTest(Number x, Number y) const { return false; }
 			bool hitTest(Vector2 v) const { return false; }
 
@@ -756,6 +758,8 @@ namespace Polycode {
 			Entity *parentEntity;
 		
 			Renderer *renderer;
+
+			Number sortTemp;
 	};
 	
 	typedef Entity SceneEntity;
