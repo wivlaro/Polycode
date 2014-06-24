@@ -89,6 +89,13 @@ namespace Polycode {
              * @return Returns true if the AABB is within the camera's frustum, false if it isn't.
              */
             bool isAABBInFrustum(const AABB &aabb);
+
+			/**
+			* Checks if the camera can see a point.
+			* @param pos Position of the point to check.
+			* @return Returns the 1-indexed plane that the point is outside, or 0 if inside all planes
+			*/
+			int isPointOutsideFrustum(const Vector3 &pos);
 			
 			/**
 			* Toggles orthographic projection mode for camera.

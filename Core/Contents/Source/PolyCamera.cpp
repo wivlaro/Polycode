@@ -70,6 +70,19 @@ void Camera::setFOV(Number fov) {
 	this->fov = fov;
 }
 
+int Camera::isPointOutsideFrustum(const Vector3 &pos) {
+	for( int i = 0; i < 6; ++i )
+	{
+		if( frustumPlanes[i].x * pos.x +
+			frustumPlanes[i].y * pos.y +
+			frustumPlanes[i].z * pos.z +
+			frustumPlanes[i].w < 0 )
+			return i + 1;
+	}
+
+	return 0;
+}
+
 bool Camera::isSphereInFrustum(const Vector3 &pos, Number fRadius) {
 	if(!frustumCulling)
 		return true;
